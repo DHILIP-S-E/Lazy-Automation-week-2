@@ -16,7 +16,8 @@ export const RemindMeModal: React.FC<RemindMeModalProps> = ({ email, userEmail, 
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const minDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
   const handleSchedule = () => {
     const finalEmail = useOtherEmail ? otherEmail : recipientEmail;
@@ -31,11 +32,17 @@ export const RemindMeModal: React.FC<RemindMeModalProps> = ({ email, userEmail, 
       return;
     }
 
-    const scheduledTime = new Date(`${date}T${time}`);
+    const [day, month, year] = date.split('/');
+    if (!day || !month || !year) {
+      alert('Please enter date in DD/MM/YYYY format');
+      return;
+    }
+
+    const scheduledTime = new Date(`${year}-${month}-${day}T${time}`);
     const now = new Date();
     
-    if (scheduledTime <= now) {
-      alert('Please select a future date and time');
+    if (isNaN(scheduledTime.getTime()) || scheduledTime <= now) {
+      alert('Please select a valid future date and time');
       return;
     }
 
@@ -100,13 +107,35 @@ export const RemindMeModal: React.FC<RemindMeModalProps> = ({ email, userEmail, 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>Date (DD/MM/YYYY)</label>
-                <input
-                  type="date"
-                  value={date}
-                  min={today}
-                  onChange={(e) => setDate(e.target.value)}
-                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.875rem', fontSize: '0.9375rem', outline: 'none' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="DD/MM/YYYY"
+                    value={date}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9/]/g, '');
+                      if (val.length <= 10) setDate(val);
+                    }}
+                    onBlur={(e) => {
+                      const val = e.target.value;
+                      if (val.length === 8 && !val.includes('/')) {
+                        setDate(`${val.slice(0,2)}/${val.slice(2,4)}/${val.slice(4,8)}`);
+                      }
+                    }}
+                    style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.875rem', paddingRight: '3rem', fontSize: '0.9375rem', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const today = new Date();
+                      setDate(`${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`);
+                    }}
+                    style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#3b82f6', padding: '0.5rem' }}
+                    title="Set today's date"
+                  >
+                    <Icons.Calendar style={{ width: '1.25rem', height: '1.25rem' }} />
+                  </button>
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem', display: 'block' }}>Time</label>

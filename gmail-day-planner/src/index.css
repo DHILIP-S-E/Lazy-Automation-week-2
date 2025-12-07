@@ -775,5 +775,16 @@ body.dark-mode .modal-content {
   }
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* Additional utilities */
 .items-end { align-items: flex-end; }

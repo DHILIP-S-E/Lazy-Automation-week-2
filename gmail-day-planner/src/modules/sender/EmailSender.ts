@@ -141,29 +141,22 @@ export class EmailSender implements IEmailSender {
   }
 
   async scheduleReminder(to: string, emailSubject: string, emailFrom: string, emailDetails: string): Promise<void> {
-    const subject = `⏰ Reminder: ${emailSubject}`;
-    const html = this.composer.composeReminder({ subject: emailSubject, from: emailFrom, details: emailDetails });
-    const raw = this.composer.composeRfc822(to, subject, html);
-
-    try {
-      await axios.post(
-        `${GMAIL_API_BASE}/users/me/drafts`,
-        {
-          message: {
-            raw,
-            labelIds: ['DRAFT'],
-            threadId: null,
-          }
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    } catch (error) {
-      throw new Error('Failed to schedule reminder.');
+    // Store reminder in localStorage for browser notifications
+    const reminders = JSON.parse(localStorage.getItem('scheduledReminders') || '[]');
+    const newReminder = {
+      id: Date.now().toString(),
+      to,
+      subject: emailSubject,
+      from: emailFrom,
+      details: emailDetails,
+      scheduledAt: new Date().toISOString()
+    };
+    reminders.push(newReminder);
+    localStorage.setItem('scheduledReminders', JSON.stringify(reminders));
+    
+    // Request notification permission if not granted
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
     }
   }
 

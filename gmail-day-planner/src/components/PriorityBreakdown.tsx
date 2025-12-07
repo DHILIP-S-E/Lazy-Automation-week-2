@@ -6,6 +6,8 @@ interface PriorityBreakdownProps {
 }
 
 export const PriorityBreakdown: React.FC<PriorityBreakdownProps> = ({ emails }) => {
+  const getCategoryCount = (category: string) => emails.filter(e => e.category === category).length;
+
   const breakdown = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -14,100 +16,49 @@ export const PriorityBreakdown: React.FC<PriorityBreakdownProps> = ({ emails }) 
     const in3Days = new Date(today);
     in3Days.setDate(in3Days.getDate() + 3);
 
-    let billsScore = 0;
-    let jobsScore = 0;
-    let meetingsScore = 0;
-    let attachmentsScore = 0;
-    let keywordsScore = 0;
-
-    const billsDetails: string[] = [];
-    const jobsDetails: string[] = [];
-    const meetingsDetails: string[] = [];
-
+    // Get actual category counts
+    const billsCount = getCategoryCount('Bills');
+    const jobsCount = getCategoryCount('Jobs') + getCategoryCount('Job Meetings') + getCategoryCount('Internship Meetings');
+    const meetingsCount = getCategoryCount('Meetings') + getCategoryCount('Student Meetings');
+    const attachmentsCount = getCategoryCount('Attachments');
+    
+    // Count urgent keywords
     const IMPORTANT_KEYWORDS = ['urgent', 'important', 'action required', 'reminder', 'final notice', 'deadline'];
-
+    let keywordsCount = 0;
     emails.forEach(email => {
       const text = `${email.subject} ${email.plainText}`.toLowerCase();
-
-      // Bills scoring
-      if (email.category === 'Bills') {
-        if (email.extractedData.dueDates.length > 0) {
-          const dueDate = new Date(email.extractedData.dueDates[0]);
-          dueDate.setHours(0, 0, 0, 0);
-          
-          if (dueDate.getTime() === today.getTime()) {
-            billsScore += 15;
-            billsDetails.push(`Due TODAY: ${email.subject.substring(0, 30)}`);
-          } else if (dueDate.getTime() === tomorrow.getTime()) {
-            billsScore += 10;
-            billsDetails.push(`Due TOMORROW: ${email.subject.substring(0, 30)}`);
-          } else if (dueDate <= in3Days) {
-            billsScore += 5;
-          } else {
-            billsScore += 1;
-          }
-        } else {
-          billsScore += 1;
-        }
-      }
-
-      // Jobs scoring
-      if (email.category === 'Jobs') {
-        if (email.extractedData.dueDates.length > 0) {
-          const deadline = new Date(email.extractedData.dueDates[0]);
-          deadline.setHours(0, 0, 0, 0);
-          
-          if (deadline.getTime() === today.getTime()) {
-            jobsScore += 12;
-            jobsDetails.push(`Deadline TODAY: ${email.subject.substring(0, 30)}`);
-          } else if (deadline <= in3Days) {
-            jobsScore += 8;
-          } else {
-            jobsScore += 2;
-          }
-        } else {
-          jobsScore += 2;
-        }
-      }
-
-      // Meetings scoring
-      if (email.category === 'Meetings') {
-        if (email.extractedData.times.length > 0) {
-          meetingsScore += 10;
-          meetingsDetails.push(`${email.extractedData.times[0]}: ${email.subject.substring(0, 30)}`);
-        } else {
-          meetingsScore += 2;
-        }
-      }
-
-      // Attachments scoring
-      if (email.attachments.length > 0) {
-        if (IMPORTANT_KEYWORDS.some(kw => text.includes(kw))) {
-          attachmentsScore += 6;
-        } else {
-          attachmentsScore += 3;
-        }
-        if (email.attachments.length > 1) {
-          attachmentsScore += 2;
-        }
-      }
-
-      // Keywords scoring
-      const keywordCount = IMPORTANT_KEYWORDS.filter(kw => text.includes(kw)).length;
-      keywordsScore += Math.min(keywordCount * 3, 15);
+      if (IMPORTANT_KEYWORDS.some(kw => text.includes(kw))) keywordsCount++;
     });
+
+    // Calculate scores
+    const billsScore = billsCount * 10;
+    const jobsScore = jobsCount * 3;
+    const meetingsScore = meetingsCount * 2;
+    const attachmentsScore = attachmentsCount * 1;
+    const keywordsScore = keywordsCount * 1;
 
     const totalScore = Math.min(billsScore + jobsScore + meetingsScore + attachmentsScore + keywordsScore, 100);
 
+    // Get meeting details
+    const meetingsDetails: string[] = [];
+    emails.forEach(email => {
+      if ((email.category === 'Meetings' || email.category === 'Student Meetings') && email.extractedData.times.length > 0 && meetingsDetails.length < 2) {
+        meetingsDetails.push(`${email.extractedData.times[0]}: ${email.subject.substring(0, 30)}`);
+      }
+    });
+
     return {
       totalScore,
-      billsScore: Math.min(billsScore, 30),
-      jobsScore: Math.min(jobsScore, 20),
-      meetingsScore: Math.min(meetingsScore, 20),
-      attachmentsScore: Math.min(attachmentsScore, 10),
-      keywordsScore: Math.min(keywordsScore, 15),
-      billsDetails,
-      jobsDetails,
+      billsScore,
+      billsCount,
+      jobsScore,
+      jobsCount,
+      meetingsScore,
+      meetingsCount,
+      attachmentsScore,
+      attachmentsCount,
+      keywordsScore,
+      keywordsCount,
       meetingsDetails
     };
   }, [emails]);
@@ -141,49 +92,35 @@ export const PriorityBreakdown: React.FC<PriorityBreakdownProps> = ({ emails }) 
       <div className="stack stack-3">
         <div>
           <div className="row between" style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>💰 Bills</span>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{breakdown.billsScore}/30</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>💰 Bills ({breakdown.billsCount} emails)</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>+{breakdown.billsScore}</span>
           </div>
           <div style={{ height: '8px', background: '#f5f5f5', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: getBarWidth(breakdown.billsScore, 30), background: '#10b981' }} />
+            <div style={{ height: '100%', width: `${Math.min((breakdown.billsScore / 100) * 100, 100)}%`, background: '#10b981' }} />
           </div>
-          {breakdown.billsDetails.length > 0 && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#737373' }}>
-              {breakdown.billsDetails.slice(0, 2).map((detail, i) => (
-                <div key={i}>• {detail}</div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div>
           <div className="row between" style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>💼 Jobs</span>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{breakdown.jobsScore}/20</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>💼 Jobs ({breakdown.jobsCount} emails)</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>+{breakdown.jobsScore}</span>
           </div>
           <div style={{ height: '8px', background: '#f5f5f5', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: getBarWidth(breakdown.jobsScore, 20), background: '#3b82f6' }} />
+            <div style={{ height: '100%', width: `${Math.min((breakdown.jobsScore / 100) * 100, 100)}%`, background: '#3b82f6' }} />
           </div>
-          {breakdown.jobsDetails.length > 0 && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#737373' }}>
-              {breakdown.jobsDetails.slice(0, 2).map((detail, i) => (
-                <div key={i}>• {detail}</div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div>
           <div className="row between" style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>📅 Meetings</span>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{breakdown.meetingsScore}/20</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>📅 Meetings ({breakdown.meetingsCount} emails)</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>+{breakdown.meetingsScore}</span>
           </div>
           <div style={{ height: '8px', background: '#f5f5f5', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: getBarWidth(breakdown.meetingsScore, 20), background: '#f59e0b' }} />
+            <div style={{ height: '100%', width: `${Math.min((breakdown.meetingsScore / 100) * 100, 100)}%`, background: '#f59e0b' }} />
           </div>
           {breakdown.meetingsDetails.length > 0 && (
             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#737373' }}>
-              {breakdown.meetingsDetails.slice(0, 2).map((detail, i) => (
+              {breakdown.meetingsDetails.map((detail, i) => (
                 <div key={i}>• {detail}</div>
               ))}
             </div>
@@ -192,21 +129,21 @@ export const PriorityBreakdown: React.FC<PriorityBreakdownProps> = ({ emails }) 
 
         <div>
           <div className="row between" style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>📎 Attachments</span>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{breakdown.attachmentsScore}/10</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>📎 Attachments ({breakdown.attachmentsCount} emails)</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>+{breakdown.attachmentsScore}</span>
           </div>
           <div style={{ height: '8px', background: '#f5f5f5', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: getBarWidth(breakdown.attachmentsScore, 10), background: '#8b5cf6' }} />
+            <div style={{ height: '100%', width: `${Math.min((breakdown.attachmentsScore / 100) * 100, 100)}%`, background: '#8b5cf6' }} />
           </div>
         </div>
 
         <div>
           <div className="row between" style={{ marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>❗ Keywords</span>
-            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{breakdown.keywordsScore}/15</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>❗ Keywords ({breakdown.keywordsCount} emails)</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>+{breakdown.keywordsScore}</span>
           </div>
           <div style={{ height: '8px', background: '#f5f5f5', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: getBarWidth(breakdown.keywordsScore, 15), background: '#ef4444' }} />
+            <div style={{ height: '100%', width: `${Math.min((breakdown.keywordsScore / 100) * 100, 100)}%`, background: '#ef4444' }} />
           </div>
         </div>
       </div>

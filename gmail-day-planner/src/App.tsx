@@ -6,6 +6,8 @@ import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
 import { SummaryView } from './components/SummaryView';
 import { TodaySummaryModal } from './components/TodaySummaryModal';
+import { SendToOtherModal } from './components/SendToOtherModal';
+import { Toast } from './components/Toast';
 import { createEmailFetcher } from './modules/fetcher';
 import { createEmailParser } from './modules/parser';
 import { createRuleEngine } from './modules/rule-engine';
@@ -24,6 +26,8 @@ const AppContent: React.FC = () => {
   const [progress, setProgress] = useState<{ fetched: number; total: number } | null>(null);
   const [hasAutoFetched, setHasAutoFetched] = useState(false);
   const [showTodaySummary, setShowTodaySummary] = useState(false);
+  const [showSendToOther, setShowSendToOther] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const reminderService = createReminderService();
   
   const accessToken = getAccessToken();
@@ -58,6 +62,9 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (authenticated) {
       setView('dashboard');
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     } else {
       setView('login');
       setHasAutoFetched(false);
@@ -128,7 +135,7 @@ const AppContent: React.FC = () => {
     try {
       const sender = createEmailSender(accessToken);
       await sender.sendSummary(summary, userEmail);
-      alert('Summary sent to your email!');
+      setToast({ message: '✅ Summary sent successfully to ' + userEmail, type: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send email');
     } finally {
@@ -136,22 +143,28 @@ const AppContent: React.FC = () => {
     }
   }, [accessToken, userEmail, summary, setLoading, setError]);
 
-  const handleSendToOther = useCallback(async () => {
-    if (!accessToken || !userEmail || !summary) return;
+  const handleSendToOther = useCallback(() => {
+    if (!summary) return;
+    setShowSendToOther(true);
+  }, [summary]);
 
-    const recipientEmail = prompt('Enter recipient email address:');
-    if (!recipientEmail || !recipientEmail.includes('@')) {
-      if (recipientEmail !== null) alert('Please enter a valid email address');
-      return;
-    }
+  const handleSendToOtherConfirm = useCallback(async (recipientEmail: string) => {
+    if (!accessToken || !userEmail || !summary) return;
 
     setLoading(true);
     setError(null);
+    setShowSendToOther(false);
 
     try {
       const sender = createEmailSender(accessToken);
       await sender.sendSummary(summary, userEmail, recipientEmail);
-      alert(`Summary sent to ${recipientEmail}!`);
+      
+      if (Notification.permission === 'granted') {
+        new Notification('✅ Summary Sent!', {
+          body: `Email summary sent to ${recipientEmail}`,
+          icon: '/logo.jpeg'
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send email');
     } finally {
@@ -173,7 +186,14 @@ const AppContent: React.FC = () => {
       const sender = createEmailSender(accessToken);
       const details = email.plainText || email.snippet || 'No content available';
       await sender.scheduleReminder(recipientEmail, email.subject, email.from, details);
-      alert(`Reminder scheduled for ${scheduledTime.toLocaleString()}`);
+      
+      // Show browser notification
+      if (Notification.permission === 'granted') {
+        new Notification('✅ Reminder Scheduled!', {
+          body: `Reminder set for ${scheduledTime.toLocaleString()}\n${email.subject}`,
+          icon: '/logo.jpeg'
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to schedule reminder');
     } finally {
@@ -244,6 +264,13 @@ const AppContent: React.FC = () => {
           onClose={() => setShowTodaySummary(false)}
         />
       )}
+      {showSendToOther && (
+        <SendToOtherModal
+          onClose={() => setShowSendToOther(false)}
+          onSend={handleSendToOtherConfirm}
+        />
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );
 };

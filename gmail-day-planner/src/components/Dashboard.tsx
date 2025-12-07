@@ -117,6 +117,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const meetingEvents = useMemo(() => meetingTimeline.extractMeetingEvents(emails), [emails, meetingTimeline]);
   const meetingConflicts = useMemo(() => meetingTimeline.detectConflicts(meetingEvents), [meetingEvents, meetingTimeline]);
 
+  const getCategoryCount = (category: string) => emails.filter(e => e.category === category).length;
+
   const upcomingMeetings = useMemo(() => {
     const now = new Date();
     const seenUpcoming = new Map<string, boolean>();
@@ -190,117 +192,71 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const priorityAnalysis = useMemo(() => {
     const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    let billsScore = 0, jobsScore = 0, meetingsScore = 0, attachmentsScore = 0, keywordsScore = 0;
     const urgentTasks: string[] = [];
-    const seenMeetings = new Map<string, boolean>();
+    const seenEmails = new Set<string>();
+    
+    let billsScore = 0;
+    let jobsScore = 0;
+    let meetingsScore = 0;
+    let attachmentsScore = 0;
+    let keywordsScore = 0;
     
     emails.forEach(email => {
-      const text = `${email.subject} ${email.plainText}`.toLowerCase();
+      const titleKey = email.subject.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 25);
+      if (seenEmails.has(titleKey)) return;
+      seenEmails.add(titleKey);
+      
+      if (email.category === 'Bills') billsScore += email.importanceScore;
+      else if (email.category === 'Jobs' || email.category === 'Job Meetings' || email.category === 'Internship Meetings') jobsScore += email.importanceScore;
+      else if (email.category === 'Meetings' || email.category === 'Student Meetings') meetingsScore += email.importanceScore;
+      else if (email.attachments.length > 0) attachmentsScore += email.importanceScore;
+      else if (IMPORTANT_KEYWORDS.some(kw => `${email.subject} ${email.plainText}`.toLowerCase().includes(kw))) keywordsScore += email.importanceScore;
+    });
+    
+    const seenMeetings = new Set<string>();
+    emails.forEach(email => {
+      if (urgentTasks.length >= 4) return;
       
       if (email.category === 'Bills' && email.extractedData.dueDates.length > 0) {
         const dueDate = new Date(email.extractedData.dueDates[0]);
         if (dueDate.toDateString() === today.toDateString()) {
-          billsScore += 15;
           urgentTasks.push(`Pay ${email.extractedData.amounts[0] || 'bill'} - Due TODAY`);
-        } else if (dueDate.toDateString() === tomorrow.toDateString()) {
-          billsScore += 10;
-          urgentTasks.push(`Pay ${email.extractedData.amounts[0] || 'bill'} - Due tomorrow`);
-        } else {
-          const in3Days = new Date(today);
-          in3Days.setDate(in3Days.getDate() + 3);
-          if (dueDate <= in3Days) {
-            billsScore += 5;
-          }
         }
       }
       
-      if (email.category === 'Jobs' || email.category === 'Job Meetings' || email.category === 'Internship Meetings') {
-        if (email.extractedData.dueDates.length > 0) {
-          const deadline = new Date(email.extractedData.dueDates[0]);
-          const in3Days = new Date(today);
-          in3Days.setDate(in3Days.getDate() + 3);
-          if (deadline.toDateString() === today.toDateString()) {
-            jobsScore += 12;
-            urgentTasks.push(`${email.subject.substring(0, 40)} - Deadline TODAY`);
-          } else if (deadline <= in3Days) {
-            jobsScore += 8;
-          } else {
-            jobsScore += 2;
-          }
-        } else {
-          jobsScore += 2;
+      if ((email.category === 'Meetings' || email.category === 'Student Meetings' || email.category === 'Job Meetings' || email.category === 'Internship Meetings') && email.extractedData.times.length > 0) {
+        const titleKey = email.subject.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 25);
+        if (!seenMeetings.has(titleKey)) {
+          seenMeetings.add(titleKey);
+          urgentTasks.push(`Meeting: ${email.subject.substring(0, 30)} at ${email.extractedData.times[0]}`);
         }
       }
-      
-      if (email.category === 'Meetings' || email.category === 'Student Meetings' || email.category === 'Job Meetings' || email.category === 'Internship Meetings') {
-        if (email.extractedData.times.length > 0) {
-          const time = email.extractedData.times[0];
-          const titleKey = email.subject.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 15);
-          
-          let isDuplicate = false;
-          for (const [key] of seenMeetings) {
-            if (key.includes(titleKey) || titleKey.includes(key.split('-')[0])) {
-              isDuplicate = true;
-              break;
-            }
-          }
-          
-          if (!isDuplicate) {
-            seenMeetings.set(titleKey, true);
-            meetingsScore += 10;
-            urgentTasks.push(`Meeting: ${email.subject.substring(0, 30)} at ${time}`);
-          }
-        } else if (email.date.toDateString() === today.toDateString()) {
-          meetingsScore += 6;
-        } else {
-          meetingsScore += 2;
-        }
-      }
-      
-      if (email.attachments.length > 0) {
-        attachmentsScore += 3;
-        if (IMPORTANT_KEYWORDS.some(kw => text.includes(kw))) attachmentsScore += 3;
-        if (email.attachments.length > 1) attachmentsScore += 2;
-      }
-      
-      const keywordCount = IMPORTANT_KEYWORDS.filter(kw => text.includes(kw)).length;
-      keywordsScore += Math.min(keywordCount * 3, 15);
     });
     
-    const totalScore = Math.min(billsScore + jobsScore + meetingsScore + attachmentsScore + keywordsScore, 100);
+    const totalScore = Math.min(Math.round((billsScore + jobsScore + meetingsScore + attachmentsScore + keywordsScore) * 10 / emails.length), 100);
     
     let level: 'high' | 'medium' | 'low';
     let status: string;
-    let statusIcon: string;
     
-    if (totalScore >= 70) {
+    if (totalScore >= 60) {
       level = 'high';
       status = 'High Priority Day';
-      statusIcon = 'high';
-    } else if (totalScore >= 40) {
+    } else if (totalScore >= 30) {
       level = 'medium';
       status = 'Moderate Priority';
-      statusIcon = 'medium';
     } else {
       level = 'low';
       status = 'Low Priority Day';
-      statusIcon = 'low';
     }
     
     return {
       totalScore,
-      breakdown: { billsScore, jobsScore, meetingsScore, attachmentsScore, keywordsScore },
+      breakdown: { billsScore: Math.round(billsScore), jobsScore: Math.round(jobsScore), meetingsScore: Math.round(meetingsScore), attachmentsScore: Math.round(attachmentsScore), keywordsScore: Math.round(keywordsScore) },
       urgentTasks: urgentTasks.slice(0, 4),
       status,
-      statusIcon,
       level
     };
   }, [emails]);
-
-  const getCategoryCount = (category: string) => emails.filter(e => e.category === category).length;
 
   const filteredEmails = useMemo(() => {
     let result: ProcessedEmail[];
@@ -398,7 +354,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {isLoading && (
           <div className="card card-md mb-6 animate-fade-in">
             <div className="row row-4">
-              <img src="logo.jpeg" alt="Logo" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '12px' }} />
+              <img src="logo.jpeg" alt="Logo" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: '12px' }} />
               <div className="flex-1">
                 <p className="font-medium mb-4">Loading your emails...</p>
                 {progress && (
@@ -456,11 +412,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <div style={{ textAlign: 'right' }}>
                   <p className="font-medium text-sm mb-4">Score Breakdown</p>
                   <div className="stack stack-2">
-                    <div className="breakdown-item"><Icons.DollarSign /> Bills: <span className="breakdown-value">+{priorityAnalysis.breakdown.billsScore}</span></div>
-                    <div className="breakdown-item"><Icons.Briefcase /> Jobs: <span className="breakdown-value">+{priorityAnalysis.breakdown.jobsScore}</span></div>
-                    <div className="breakdown-item"><Icons.Calendar /> Meetings: <span className="breakdown-value">+{priorityAnalysis.breakdown.meetingsScore}</span></div>
-                    <div className="breakdown-item"><Icons.Paperclip /> Attachments: <span className="breakdown-value">+{priorityAnalysis.breakdown.attachmentsScore}</span></div>
-                    <div className="breakdown-item"><Icons.Bell /> Keywords: <span className="breakdown-value">+{priorityAnalysis.breakdown.keywordsScore}</span></div>
+                    <div className="breakdown-item" title="Bills with due dates">
+                      <Icons.DollarSign /> Bills: <span className="breakdown-value">+{priorityAnalysis.breakdown.billsScore}</span>
+                    </div>
+                    <div className="breakdown-item" title="Job alerts, interviews, and internships with deadlines">
+                      <Icons.Briefcase /> Jobs/Career: <span className="breakdown-value">+{priorityAnalysis.breakdown.jobsScore}</span>
+                    </div>
+                    <div className="breakdown-item" title="All meetings with times (classes, interviews, general)">
+                      <Icons.Calendar /> Meetings: <span className="breakdown-value">+{priorityAnalysis.breakdown.meetingsScore}</span>
+                    </div>
+                    <div className="breakdown-item" title="Emails with attachments">
+                      <Icons.Paperclip /> Attachments: <span className="breakdown-value">+{priorityAnalysis.breakdown.attachmentsScore}</span>
+                    </div>
+                    <div className="breakdown-item" title="Urgent keywords found">
+                      <Icons.Bell /> Urgency: <span className="breakdown-value">+{priorityAnalysis.breakdown.keywordsScore}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -902,7 +868,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Initial Loading State (before first fetch) */}
         {!isLoading && emails.length === 0 && !error && !lastSync && (
           <div className="card card-lg text-center animate-fade-in" style={{ padding: '4rem' }}>
-            <img src="logo.jpeg" alt="Logo" style={{ width: 150, height: 150, objectFit: 'cover', margin: '0 auto 1.5rem', borderRadius: '20px' }} />
+            <img src="logo.jpeg" alt="Logo" style={{ width: 200, height: 200, objectFit: 'cover', margin: '0 auto 1.5rem', borderRadius: '20px' }} />
             <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>Getting ready...</h2>
             <p className="stat-label">Preparing to fetch your emails</p>
           </div>

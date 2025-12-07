@@ -40,18 +40,20 @@ export class StressIndicator {
       if (email.category === 'Bills') financialMails++;
     });
 
-    const score = urgentTasks * 15 + meetingsToday * 10 + deadlinesToday * 20 + financialMails * 5;
+    // Calculate score with reasonable weights (max 100)
+    const rawScore = (urgentTasks * 10) + (meetingsToday * 8) + (deadlinesToday * 15) + (financialMails * 3);
+    const score = Math.min(rawScore, 100);
 
     let level: StressAnalysis['level'];
     let message: string;
 
-    if (score >= 80) {
+    if (score >= 70) {
       level = 'CRITICAL';
       message = `You have ${urgentTasks} urgent tasks, ${meetingsToday} meetings, and ${deadlinesToday} deadlines today.`;
-    } else if (score >= 50) {
+    } else if (score >= 45) {
       level = 'HIGH';
       message = `You have ${urgentTasks} urgent tasks and ${meetingsToday} meetings today.`;
-    } else if (score >= 25) {
+    } else if (score >= 20) {
       level = 'MEDIUM';
       message = `Moderate workload with ${urgentTasks} important items.`;
     } else {
