@@ -22,16 +22,14 @@ jobs:
           node-version: '20'
       
       - name: Install dependencies
-        run: |
-          cd gmail-day-planner
-          npm ci
+        working-directory: ./gmail-day-planner
+        run: npm ci
       
       - name: Build
-        run: |
-          cd gmail-day-planner
-          npm run build
+        working-directory: ./gmail-day-planner
         env:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+        run: npm run build
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
