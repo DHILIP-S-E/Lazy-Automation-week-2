@@ -86,9 +86,9 @@ export const EmailCard: React.FC<EmailCardProps> = React.memo(({ email, onAddToC
             </div>
             {onAddToCalendar && (email.category === 'Meetings' || email.category === 'Student Meetings' || email.category === 'Job Meetings' || email.category === 'Internship Meetings') && (
               <button
-                onClick={() => onAddToCalendar(email)}
+                onClick={(e) => { e.stopPropagation(); onAddToCalendar(email); }}
                 className="btn btn-sm"
-                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#2563eb', color: 'white' }}
+                style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem', background: '#2563eb', color: 'white', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
               >
                 <Icons.Calendar /> Add to Calendar
               </button>

@@ -10,18 +10,23 @@ export class CalendarService {
   }
 
   async addToCalendar(email: ProcessedEmail): Promise<void> {
-    const event = this.createEventFromEmail(email);
-    
-    await axios.post(
-      `${CALENDAR_API_BASE}/calendars/primary/events`,
-      event,
-      {
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    try {
+      const event = this.createEventFromEmail(email);
+      
+      await axios.post(
+        `${CALENDAR_API_BASE}/calendars/primary/events`,
+        event,
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Failed to add event to calendar:', error);
+      throw new Error('Failed to add event to calendar. Please check your calendar permissions.');
+    }
   }
 
   private createEventFromEmail(email: ProcessedEmail) {
@@ -32,11 +37,13 @@ export class CalendarService {
     const startTime = this.parseDateTime(email);
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000);
 
+    const description = email.plainText ? email.plainText.substring(0, 500) : email.snippet || 'No description available';
+
     return {
-      summary: email.subject,
-      description: `${email.plainText.substring(0, 500)}\n\n${meetingUrl ? `Join: ${meetingUrl}` : ''}`,
-      start: { dateTime: startTime.toISOString(), timeZone: 'UTC' },
-      end: { dateTime: endTime.toISOString(), timeZone: 'UTC' },
+      summary: email.subject || 'Meeting',
+      description: `${description}\n\n${meetingUrl ? `Join: ${meetingUrl}` : ''}`,
+      start: { dateTime: startTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      end: { dateTime: endTime.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
       conferenceData: meetingUrl ? { entryPoints: [{ uri: meetingUrl, entryPointType: 'video' }] } : undefined,
     };
   }
