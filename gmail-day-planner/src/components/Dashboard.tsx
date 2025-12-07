@@ -352,22 +352,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Loading State */}
         {isLoading && (
           <div className="card card-md mb-6 animate-fade-in">
-            <div className="row row-4">
-              <img src="logo.jpeg" alt="Logo" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: '12px' }} />
-              <div className="flex-1">
-                <p className="font-medium mb-4">Loading your emails...</p>
-                {progress && (
-                  <div>
-                    <div className="row between mb-4">
-                      <span className="stat-label">{progress.fetched} of {progress.total}</span>
-                      <span className="font-medium">{Math.round((progress.fetched / progress.total) * 100)}%</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${(progress.fetched / progress.total) * 100}%` }} />
-                    </div>
+            <div className="flex-1">
+              <p className="font-medium mb-4">Loading your emails...</p>
+              {progress && (
+                <div>
+                  <div className="row between mb-4">
+                    <span className="stat-label">{progress.fetched} of {progress.total}</span>
+                    <span className="font-medium">{Math.round((progress.fetched / progress.total) * 100)}%</span>
                   </div>
-                )}
-              </div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${(progress.fetched / progress.total) * 100}%` }} />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="stack stack-3 mt-4">
               <div className="skeleton skeleton-card"></div>
