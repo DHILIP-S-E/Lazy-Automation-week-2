@@ -23,7 +23,6 @@ export class MeetingTimeline {
         email.extractedData.times.forEach(time => {
           const normalizedTime = this.normalizeTime(time);
           const titleKey = email.subject.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 30);
-          const meetingKey = `${normalizedTime}-${titleKey}`;
           
           if (!seenMeetings.has(normalizedTime)) {
             seenMeetings.set(normalizedTime, new Set());

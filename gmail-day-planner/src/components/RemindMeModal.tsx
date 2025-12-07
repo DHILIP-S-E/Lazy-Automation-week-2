@@ -10,7 +10,7 @@ interface RemindMeModalProps {
 }
 
 export const RemindMeModal: React.FC<RemindMeModalProps> = ({ email, userEmail, onClose, onSchedule }) => {
-  const [recipientEmail, setRecipientEmail] = useState(userEmail);
+  const [recipientEmail] = useState(userEmail);
   const [useOtherEmail, setUseOtherEmail] = useState(false);
   const [otherEmail, setOtherEmail] = useState('');
   const [date, setDate] = useState('');

@@ -140,7 +140,7 @@ export class EmailSender implements IEmailSender {
     this.composer = new EmailComposer();
   }
 
-  async scheduleReminder(to: string, emailSubject: string, emailFrom: string, emailDetails: string, scheduledTime: Date): Promise<void> {
+  async scheduleReminder(to: string, emailSubject: string, emailFrom: string, emailDetails: string): Promise<void> {
     const subject = `⏰ Reminder: ${emailSubject}`;
     const html = this.composer.composeReminder({ subject: emailSubject, from: emailFrom, details: emailDetails });
     const raw = this.composer.composeRfc822(to, subject, html);

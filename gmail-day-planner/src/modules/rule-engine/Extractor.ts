@@ -8,7 +8,6 @@ export class Extractor implements IExtractor {
   private readonly dueDateRegex = new RegExp(REGEX_PATTERNS.dueDate.source, 'g');
   private readonly urlRegex = new RegExp(REGEX_PATTERNS.url.source, 'g');
   private readonly timeRegex = new RegExp(REGEX_PATTERNS.time.source, 'gi');
-  private readonly otpRegex = new RegExp(REGEX_PATTERNS.otp.source, 'g');
 
   extractAmount(text: string): string[] {
     if (!text) return [];

@@ -1,5 +1,3 @@
-import type { ProcessedEmail } from '../../types/email';
-
 export interface Reminder {
   id: string;
   emailId: string;
