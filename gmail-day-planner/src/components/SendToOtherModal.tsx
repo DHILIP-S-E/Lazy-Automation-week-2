@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
+import { SecurityUtils } from '../utils/security';
 
 interface SendToOtherModalProps {
   onClose: () => void;
@@ -11,7 +12,7 @@ export const SendToOtherModal: React.FC<SendToOtherModalProps> = ({ onClose, onS
   const [error, setError] = useState('');
 
   const handleSend = () => {
-    if (!email || !email.includes('@')) {
+    if (!SecurityUtils.validateEmail(email)) {
       setError('Please enter a valid email address');
       return;
     }

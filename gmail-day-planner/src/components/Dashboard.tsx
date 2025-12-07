@@ -186,7 +186,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (confirm('Are you sure you want to delete all saved emails?')) {
       localStorage_.clearAllData();
       setSavedEmails([]);
-      alert('All saved data cleared!');
     }
   };
 

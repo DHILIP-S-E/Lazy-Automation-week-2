@@ -69,7 +69,7 @@ export const PriorityBreakdown: React.FC<PriorityBreakdownProps> = ({ emails }) 
     return '#10b981';
   };
 
-  const getBarWidth = (score: number, max: number) => `${(score / max) * 100}%`;
+
 
   return (
     <div className="card card-md">

@@ -29,9 +29,20 @@ export const EmailCard: React.FC<EmailCardProps> = React.memo(({ email, onAddToC
     return new Date(date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
   };
 
   const color = CATEGORY_COLORS[email.category] || CATEGORY_COLORS.Other;
@@ -85,13 +96,13 @@ export const EmailCard: React.FC<EmailCardProps> = React.memo(({ email, onAddToC
           </div>
         )}
 
-        {email.extractedData.urls.length > 0 && (
+        {email.extractedData.urls.length > 0 && email.extractedData.urls[0].startsWith('http') && (
           <div className="row row-2" style={{ fontSize: '0.875rem' }}>
             <Icons.Mail />
             <a
               href={email.extractedData.urls[0]}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener noreferrer nofollow"
               className="btn btn-sm"
               style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#2563eb', color: 'white' }}
             >

@@ -210,7 +210,7 @@ const AppContent: React.FC = () => {
     try {
       const calendarService = createCalendarService(accessToken);
       await calendarService.addToCalendar(email);
-      alert('Event added to calendar!');
+      setToast({ message: '✅ Event added to calendar', type: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add to calendar');
     } finally {

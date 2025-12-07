@@ -16,8 +16,7 @@ export const RemindMeModal: React.FC<RemindMeModalProps> = ({ email, userEmail, 
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   
-  const today = new Date();
-  const minDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
 
   const handleSchedule = () => {
     const finalEmail = useOtherEmail ? otherEmail : recipientEmail;

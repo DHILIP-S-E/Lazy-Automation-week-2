@@ -29,6 +29,9 @@ export class EmailFetcher implements IEmailFetcher {
   }
 
   private getHeaders() {
+    if (!this.accessToken || this.accessToken.length < 20) {
+      throw new EmailFetcherError('Invalid access token', 'INVALID_TOKEN', false);
+    }
     return {
       Authorization: `Bearer ${this.accessToken}`,
       'Content-Type': 'application/json',
