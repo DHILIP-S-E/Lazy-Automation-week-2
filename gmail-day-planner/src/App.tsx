@@ -42,7 +42,7 @@ const AppContent: React.FC = () => {
       for (const reminder of pending) {
         try {
           const sender = createEmailSender(accessToken);
-          await sender.scheduleReminder(reminder.recipientEmail, reminder.emailSubject, reminder.emailFrom, reminder.emailDetails, reminder.scheduledTime);
+          await sender.scheduleReminder(reminder.recipientEmail, reminder.emailSubject, reminder.emailFrom, reminder.emailDetails);
           reminderService.markAsSent(reminder.id);
         } catch (err) {
           console.error('Failed to send reminder:', err);
@@ -172,7 +172,7 @@ const AppContent: React.FC = () => {
     try {
       const sender = createEmailSender(accessToken);
       const details = email.plainText || email.snippet || 'No content available';
-      await sender.scheduleReminder(recipientEmail, email.subject, email.from, details, scheduledTime);
+      await sender.scheduleReminder(recipientEmail, email.subject, email.from, details);
       alert(`Reminder scheduled for ${scheduledTime.toLocaleString()}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to schedule reminder');
