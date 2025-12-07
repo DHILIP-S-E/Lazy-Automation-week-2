@@ -34,7 +34,7 @@ describe('EmailParser', () => {
             { name: 'To', value: 'receiver@example.com' },
             { name: 'Date', value: 'Mon, 1 Jan 2024 10:00:00 +0000' },
           ],
-          body: { data: btoa('Test body') },
+          body: { size: 0, data: btoa('Test body') },
         },
         snippet: 'Test snippet',
         internalDate: '1704096000000',
@@ -52,7 +52,7 @@ describe('EmailParser', () => {
         threadId: 'thread-id',
         payload: {
           headers: [{ name: 'Content-Type', value: 'text/plain' }],
-          body: { data: btoa('Hello World') },
+          body: { size: 0, data: btoa('Hello World') },
         },
         snippet: '',
         internalDate: '1704096000000',
@@ -68,10 +68,10 @@ describe('EmailParser', () => {
         threadId: 'thread-id',
         payload: {
           headers: [],
-          body: {},
+          body: { size: 0 },
           parts: [
-            { mimeType: 'text/plain', body: { data: btoa('Plain text') } },
-            { mimeType: 'text/html', body: { data: btoa('<p>HTML</p>') } },
+            { partId: '0', mimeType: 'text/plain', filename: '', headers: [], body: { size: 0, data: btoa('Plain text') } },
+            { partId: '1', mimeType: 'text/html', filename: '', headers: [], body: { size: 0, data: btoa('<p>HTML</p>') } },
           ],
         },
         snippet: '',
@@ -86,7 +86,7 @@ describe('EmailParser', () => {
       const message: GmailMessage = {
         id: 'test-id',
         threadId: 'thread-id',
-        payload: { headers: [], body: {} },
+        payload: { headers: [], body: { size: 0 } },
         snippet: 'Snippet text',
         internalDate: '1704096000000',
       };
@@ -101,8 +101,8 @@ describe('EmailParser', () => {
         threadId: 'thread-id',
         payload: {
           headers: [],
-          body: {},
-          parts: [{ filename: 'doc.pdf', mimeType: 'application/pdf', body: { size: 1000 } }],
+          body: { size: 0 },
+          parts: [{ partId: '0', filename: 'doc.pdf', mimeType: 'application/pdf', headers: [], body: { size: 1000 } }],
         },
         snippet: '',
         internalDate: '1704096000000',

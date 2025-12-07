@@ -18,7 +18,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ emails }) => {
   const duplicateDetector = useMemo(() => new DuplicateDetector(), []);
 
   const otps = useMemo(() => otpCenter.extractOTPs(emails), [emails, otpCenter]);
-  const { clean, noise } = useMemo(() => noiseFilter.filterNoise(emails), [emails, noiseFilter]);
+  const { noise } = useMemo(() => noiseFilter.filterNoise(emails), [emails, noiseFilter]);
   const stress = useMemo(() => stressIndicator.analyze(emails), [emails, stressIndicator]);
   const tomorrow = useMemo(() => tomorrowPredictor.predict(emails), [emails, tomorrowPredictor]);
   const { duplicates } = useMemo(() => duplicateDetector.detectDuplicates(emails), [emails, duplicateDetector]);
