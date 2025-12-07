@@ -15,16 +15,29 @@ export interface TimelineConflict {
 export class MeetingTimeline {
   extractMeetingEvents(emails: ProcessedEmail[]): MeetingEvent[] {
     const events: MeetingEvent[] = [];
+    const meetingCategories = ['Meetings', 'Student Meetings', 'Job Meetings', 'Internship Meetings'];
+    const seenMeetings = new Map<string, Set<string>>();
 
     emails.forEach(email => {
-      if (email.category === 'Meetings' && email.extractedData.times.length > 0) {
+      if (meetingCategories.includes(email.category) && email.extractedData.times.length > 0) {
         email.extractedData.times.forEach(time => {
-          events.push({
-            time: this.normalizeTime(time),
-            title: email.subject.substring(0, 50),
-            emailId: email.id,
-            rawTime: time
-          });
+          const normalizedTime = this.normalizeTime(time);
+          const titleKey = email.subject.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 30);
+          const meetingKey = `${normalizedTime}-${titleKey}`;
+          
+          if (!seenMeetings.has(normalizedTime)) {
+            seenMeetings.set(normalizedTime, new Set());
+          }
+          
+          if (!seenMeetings.get(normalizedTime)!.has(titleKey)) {
+            seenMeetings.get(normalizedTime)!.add(titleKey);
+            events.push({
+              time: normalizedTime,
+              title: email.subject.substring(0, 50),
+              emailId: email.id,
+              rawTime: time
+            });
+          }
         });
       }
     });

@@ -64,13 +64,21 @@ function AuthProviderInner({ children }: AuthProviderInnerProps) {
   const logout = useCallback(() => {
     setAuthToken(null);
     setUserEmail(null);
+    sessionStorage.clear();
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      sessionStorage.clear();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       setAuthToken(null);
       setUserEmail(null);
+      sessionStorage.clear();
     };
   }, []);
 

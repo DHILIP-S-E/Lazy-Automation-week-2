@@ -37,8 +37,8 @@ export const EmailCard: React.FC<EmailCardProps> = React.memo(({ email, onAddToC
   const color = CATEGORY_COLORS[email.category] || CATEGORY_COLORS.Other;
 
   return (
-    <div className="card card-sm" style={{ borderLeft: `3px solid ${color}` }}>
-      <div className="row between mb-4">
+    <div className="card card-sm" style={{ borderLeft: `3px solid ${color}`, position: 'relative' }}>
+      <div className="row between mb-4" style={{ paddingRight: '3rem' }}>
         <div className="flex-1 min-w-0">
           <h3 style={{ fontSize: '1rem', fontWeight: '500', marginBottom: '0.25rem' }} className="truncate">{email.subject}</h3>
           <p style={{ fontSize: '0.875rem', color: '#737373' }} className="truncate">{email.from}</p>

@@ -1,13 +1,13 @@
 // Category keywords for email classification
 export const CATEGORY_KEYWORDS = {
-  Bills: ['invoice', 'payment due', 'amount due', 'due date', 'receipt', 'subscription charge', 'transaction receipt', 'billing statement', 'pay your bill'],
-  'Student Meetings': ['class', 'lecture', 'assignment', 'exam', 'course', 'professor', 'university', 'college', 'semester', 'program', 'degree', 'learning', 'education', 'training program'],
-  'Job Meetings': ['interview', 'job interview', 'recruiter', 'hiring manager', 'career opportunity'],
-  'Internship Meetings': ['internship', 'intern interview', 'intern opportunity', 'associate consultant intern'],
-  Meetings: ['meeting', 'google meet', 'zoom', 'teams meeting', 'join', 'conference call', 'discussion', 'call scheduled'],
-  Promotions: ['offer', 'discount', 'sale', 'deal', 'promo', 'coupon', 'limited time', 'save', 'free shipping'],
-  OTP: ['verification code', 'otp', 'security code', 'authentication code', 'confirm your'],
-  Jobs: ['job alert', 'hiring for the role', 'apply now', 'position available', 'vacancy', 'employment opportunity', 'is hiring', 'job opening'],
+  Bills: ['invoice', 'payment', 'bill', 'receipt', 'charge', 'transaction', 'amount due', 'due date', 'billing', 'subscription'],
+  'Student Meetings': ['class', 'lecture', 'assignment', 'exam', 'course', 'professor', 'university', 'college', 'semester', 'student', 'academic', 'education'],
+  'Job Meetings': ['interview', 'job interview', 'recruiter', 'hiring manager', 'screening call', 'round'],
+  'Internship Meetings': ['internship', 'intern', 'intern interview', 'intern opportunity'],
+  Meetings: ['meeting', 'meet', 'zoom', 'teams', 'conference', 'call', 'join', 'webinar', 'session'],
+  Promotions: ['offer', 'discount', 'sale', 'deal', 'promo', 'coupon', 'limited', 'save', 'free', 'exclusive', 'shop'],
+  OTP: ['otp', 'verification', 'verify', 'code', 'one-time', 'security code', 'authentication', 'confirm'],
+  Jobs: ['job', 'hiring', 'apply', 'position', 'vacancy', 'career', 'opening', 'opportunity', 'role'],
 } as const;
 
 // Regex patterns for data extraction
@@ -15,8 +15,8 @@ export const REGEX_PATTERNS = {
   amount: /[₹$€£]\s?\d+(?:,\d{3})*(?:\.\d{1,2})?/g,
   dueDate: /\d{1,2}[/-]\d{1,2}[/-]\d{4}/g,
   url: /https?:\/\/\S+/g,
-  time: /\d{1,2}:\d{2}\s?(AM|PM)/gi,
-  otp: /\b\d{6}\b/g,
+  time: /\d{1,2}:\d{2}\s?(?:AM|PM|am|pm)/gi,
+  otp: /\b\d{4,8}\b/g,
 } as const;
 
 // OAuth configuration

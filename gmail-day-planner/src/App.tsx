@@ -5,6 +5,7 @@ import { AppProvider, useAppState } from './modules/state/AppContext';
 import { LoginScreen } from './components/LoginScreen';
 import { Dashboard } from './components/Dashboard';
 import { SummaryView } from './components/SummaryView';
+import { TodaySummaryModal } from './components/TodaySummaryModal';
 import { createEmailFetcher } from './modules/fetcher';
 import { createEmailParser } from './modules/parser';
 import { createRuleEngine } from './modules/rule-engine';
@@ -12,6 +13,7 @@ import { createSummaryGenerator } from './modules/summary';
 import { createEmailSender } from './modules/sender';
 import { createCalendarService } from './modules/calendar';
 import { privacyGuard } from './modules/privacy';
+import { createReminderService } from './modules/reminders/ReminderService';
 
 type View = 'login' | 'dashboard' | 'summary';
 
@@ -21,6 +23,8 @@ const AppContent: React.FC = () => {
   const [view, setView] = useState<View>('login');
   const [progress, setProgress] = useState<{ fetched: number; total: number } | null>(null);
   const [hasAutoFetched, setHasAutoFetched] = useState(false);
+  const [showTodaySummary, setShowTodaySummary] = useState(false);
+  const reminderService = createReminderService();
   
   const accessToken = getAccessToken();
   const authenticated = isAuthenticated();
@@ -29,6 +33,27 @@ const AppContent: React.FC = () => {
     privacyGuard.enableConsoleProtection();
     return () => privacyGuard.disableConsoleProtection();
   }, []);
+
+  useEffect(() => {
+    if (!authenticated || !accessToken) return;
+
+    const checkReminders = async () => {
+      const pending = reminderService.getPendingReminders();
+      for (const reminder of pending) {
+        try {
+          const sender = createEmailSender(accessToken);
+          await sender.scheduleReminder(reminder.recipientEmail, reminder.emailSubject, reminder.emailFrom, reminder.emailDetails, reminder.scheduledTime);
+          reminderService.markAsSent(reminder.id);
+        } catch (err) {
+          console.error('Failed to send reminder:', err);
+        }
+      }
+    };
+
+    checkReminders();
+    const interval = setInterval(checkReminders, 60000);
+    return () => clearInterval(interval);
+  }, [authenticated, accessToken]);
 
   useEffect(() => {
     if (authenticated) {
@@ -60,7 +85,17 @@ const AppContent: React.FC = () => {
       });
       
       const parsedEmails = messages.map((msg) => parser.parse(msg));
-      const processedEmails = ruleEngine.processBatch(parsedEmails);
+      
+      const filteredEmails = parsedEmails.filter(email => {
+        const subject = email.subject.toLowerCase();
+        const from = email.from.toLowerCase();
+        return !subject.includes('automail summary') && 
+               !subject.includes('daily summary') && 
+               !subject.includes('reminder from automail') &&
+               !from.includes('me');
+      });
+      
+      const processedEmails = ruleEngine.processBatch(filteredEmails);
       const emailSummary = summaryGenerator.generate(processedEmails);
 
       setEmails(processedEmails);
@@ -101,22 +136,50 @@ const AppContent: React.FC = () => {
     }
   }, [accessToken, userEmail, summary, setLoading, setError]);
 
+  const handleSendToOther = useCallback(async () => {
+    if (!accessToken || !userEmail || !summary) return;
+
+    const recipientEmail = prompt('Enter recipient email address:');
+    if (!recipientEmail || !recipientEmail.includes('@')) {
+      if (recipientEmail !== null) alert('Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const sender = createEmailSender(accessToken);
+      await sender.sendSummary(summary, userEmail, recipientEmail);
+      alert(`Summary sent to ${recipientEmail}!`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send email');
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, userEmail, summary, setLoading, setError]);
+
   const handleTodaySummary = useCallback(() => {
-    const today = new Date();
-    const todayEmails = emails.filter(e => e.date.toDateString() === today.toDateString());
-    
-    const summaryText = `Today's Summary (${today.toLocaleDateString()})\n\n` +
-      `Total Emails: ${todayEmails.length}\n` +
-      `Bills: ${todayEmails.filter(e => e.category === 'Bills').length}\n` +
-      `Classes: ${todayEmails.filter(e => e.category === 'Student Meetings').length}\n` +
-      `Job Interviews: ${todayEmails.filter(e => e.category === 'Job Meetings').length}\n` +
-      `Internships: ${todayEmails.filter(e => e.category === 'Internship Meetings').length}\n` +
-      `Meetings: ${todayEmails.filter(e => e.category === 'Meetings').length}\n` +
-      `Jobs: ${todayEmails.filter(e => e.category === 'Jobs').length}\n` +
-      `OTPs: ${todayEmails.filter(e => e.category === 'OTP').length}`;
-    
-    alert(summaryText);
-  }, [emails]);
+    setShowTodaySummary(true);
+  }, []);
+
+  const handleScheduleReminder = useCallback(async (email: ProcessedEmail, recipientEmail: string, scheduledTime: Date) => {
+    if (!accessToken) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const sender = createEmailSender(accessToken);
+      const details = email.plainText || email.snippet || 'No content available';
+      await sender.scheduleReminder(recipientEmail, email.subject, email.from, details, scheduledTime);
+      alert(`Reminder scheduled for ${scheduledTime.toLocaleString()}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to schedule reminder');
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, setLoading, setError]);
 
   const handleAddToCalendar = useCallback(async (email: ProcessedEmail) => {
     if (!accessToken) return;
@@ -158,19 +221,30 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Dashboard
-      emails={emails}
-      summary={summary}
-      isLoading={isLoading}
-      error={error}
-      progress={progress}
-      onRefresh={handleRefresh}
-      onViewSummary={handleViewSummary}
-      onEmailSummary={handleEmailSummary}
-      onTodaySummary={handleTodaySummary}
-      onAddToCalendar={handleAddToCalendar}
-      onLogout={handleLogout}
-    />
+    <>
+      <Dashboard
+        emails={emails}
+        summary={summary}
+        isLoading={isLoading}
+        error={error}
+        progress={progress}
+        userEmail={userEmail || ''}
+        onRefresh={handleRefresh}
+        onViewSummary={handleViewSummary}
+        onEmailSummary={handleEmailSummary}
+        onSendToOther={handleSendToOther}
+        onTodaySummary={handleTodaySummary}
+        onScheduleReminder={handleScheduleReminder}
+        onAddToCalendar={handleAddToCalendar}
+        onLogout={handleLogout}
+      />
+      {showTodaySummary && (
+        <TodaySummaryModal
+          emails={emails}
+          onClose={() => setShowTodaySummary(false)}
+        />
+      )}
+    </>
   );
 };
 

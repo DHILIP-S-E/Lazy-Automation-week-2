@@ -34,10 +34,17 @@ const AppContext = createContext<AppContextValue | null>(null);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(initialState);
 
-  // Cleanup on unmount - clear all data from memory
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      sessionStorage.clear();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       setState(initialState);
+      sessionStorage.clear();
     };
   }, []);
 
@@ -91,6 +98,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const reset = useCallback(() => {
     setState(initialState);
+    sessionStorage.clear();
   }, []);
 
   const value: AppContextValue = {

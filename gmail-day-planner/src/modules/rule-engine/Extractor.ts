@@ -35,13 +35,40 @@ export class Extractor implements IExtractor {
   extractTime(text: string): string[] {
     if (!text) return [];
     const matches = text.match(this.timeRegex);
-    return matches || [];
+    if (!matches) return [];
+    // Remove duplicates and return all unique times
+    return [...new Set(matches)];
   }
 
   extractOtp(text: string): string[] {
     if (!text) return [];
-    const matches = text.match(this.otpRegex);
-    return matches || [];
+    
+    const lowerText = text.toLowerCase();
+    const otpKeywords = ['otp', 'code', 'verification', 'authenticate', 'confirm', 'security code', 'pin'];
+    const hasOtpContext = otpKeywords.some(keyword => lowerText.includes(keyword));
+    
+    if (!hasOtpContext) return [];
+    
+    const contextualOtpRegex = /(?:otp|code|verification|pin|authenticate)(?:[:\s]+|\s+is\s+)([\d\s]{4,8})\b/gi;
+    const matches = text.match(contextualOtpRegex);
+    
+    if (matches) {
+      return matches.map(m => m.replace(/\D/g, '')).filter(code => {
+        if (code.length < 4 || code.length > 8) return false;
+        if (/^(19|20)\d{2}$/.test(code)) return false;
+        if (code.length === 4 && parseInt(code) < 1000) return false;
+        return true;
+      });
+    }
+    
+    const standaloneOtpRegex = /\b(\d{6})\b/g;
+    const standaloneMatches = text.match(standaloneOtpRegex);
+    
+    if (standaloneMatches && hasOtpContext) {
+      return standaloneMatches.filter(code => !/^(19|20)\d{2}$/.test(code)).slice(0, 1);
+    }
+    
+    return [];
   }
 
   extractAll(text: string): ExtractedData {

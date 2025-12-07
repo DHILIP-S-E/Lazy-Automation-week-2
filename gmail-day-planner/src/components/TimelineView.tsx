@@ -76,17 +76,20 @@ export const TimelineView: React.FC<TimelineViewProps> = ({ emails }) => {
       {tasks.length > 0 && (
         <div className="card card-md">
           <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-            📝 Extracted Tasks
+            📝 Tasks & Action Items ({tasks.length})
           </h3>
           <div className="stack stack-2">
-            {tasks.slice(0, 10).map((task, i) => (
-              <div key={i} className="row row-2" style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
-                <div style={{ fontSize: '1.25rem' }}>•</div>
+            {tasks.slice(0, 15).map((task, i) => (
+              <div key={i} className="row row-2" style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '0.5rem', borderLeft: task.deadline ? '3px solid #3b82f6' : '3px solid #d1d5db' }}>
+                <div style={{ fontSize: '1.25rem' }}>{task.deadline ? '⏰' : '•'}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>{task.task}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem' }}>
+                    From: {task.subject}
+                  </div>
                   {task.deadline && (
-                    <div style={{ fontSize: '0.75rem', color: '#737373', marginTop: '0.25rem' }}>
-                      Deadline: {task.deadline}
+                    <div style={{ fontSize: '0.75rem', color: '#3b82f6', fontWeight: '600', marginTop: '0.25rem' }}>
+                      📅 Deadline: {task.deadline}
                     </div>
                   )}
                 </div>

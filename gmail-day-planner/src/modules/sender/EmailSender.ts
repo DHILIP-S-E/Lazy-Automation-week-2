@@ -86,6 +86,33 @@ export class EmailComposer implements IEmailComposer {
     `;
   }
 
+  composeReminder(email: { subject: string; from: string; details: string }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .reminder-box { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1.5rem; border-radius: 0.5rem; margin: 1rem 0; }
+          .email-content { background: #f9fafb; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; white-space: pre-wrap; }
+        </style>
+      </head>
+      <body>
+        <h1>⏰ Reminder from AutoMail</h1>
+        <div class="reminder-box">
+          <h2 style="color: #f59e0b; margin-top: 0;">📧 ${email.subject}</h2>
+          <p><strong>From:</strong> ${email.from}</p>
+          <div class="email-content">${email.details}</div>
+        </div>
+        <p style="color: #9CA3AF; font-size: 12px; margin-top: 2rem;">
+          This reminder was scheduled via AutoMail Day Planner.
+        </p>
+      </body>
+      </html>
+    `;
+  }
+
   composeRfc822(to: string, subject: string, html: string): string {
     const message = [
       `To: ${to}`,
@@ -113,7 +140,34 @@ export class EmailSender implements IEmailSender {
     this.composer = new EmailComposer();
   }
 
-  async sendSummary(summary: EmailSummary, userEmail: string): Promise<void> {
+  async scheduleReminder(to: string, emailSubject: string, emailFrom: string, emailDetails: string, scheduledTime: Date): Promise<void> {
+    const subject = `⏰ Reminder: ${emailSubject}`;
+    const html = this.composer.composeReminder({ subject: emailSubject, from: emailFrom, details: emailDetails });
+    const raw = this.composer.composeRfc822(to, subject, html);
+
+    try {
+      await axios.post(
+        `${GMAIL_API_BASE}/users/me/drafts`,
+        {
+          message: {
+            raw,
+            labelIds: ['DRAFT'],
+            threadId: null,
+          }
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } catch (error) {
+      throw new Error('Failed to schedule reminder.');
+    }
+  }
+
+  async sendSummary(summary: EmailSummary, userEmail: string, recipientEmail?: string): Promise<void> {
     const today = new Date().toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -123,7 +177,7 @@ export class EmailSender implements IEmailSender {
 
     const subject = `Your Daily Email Summary - ${today}`;
     const html = this.composer.composeHtml(summary);
-    const raw = this.composer.composeRfc822(userEmail, subject, html);
+    const raw = this.composer.composeRfc822(recipientEmail || userEmail, subject, html);
 
     try {
       await axios.post(

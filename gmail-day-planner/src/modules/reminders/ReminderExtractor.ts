@@ -29,30 +29,47 @@ export class ReminderExtractor {
 
   extractFromText(text: string, source: string = 'text'): Reminder[] {
     const reminders: Reminder[] = [];
-    const lines = text.split('\n');
+    
+    // Clean HTML tags and entities
+    const cleanText = text
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&[a-z]+;/gi, ' ')
+      .replace(/&#\d+;/g, ' ')
+      .replace(/\s+/g, ' ');
+    
+    const lines = cleanText.split('\n');
 
     lines.forEach(line => {
+      // Skip lines that are too short, too long, or look like junk
+      const trimmed = line.trim();
+      if (trimmed.length < 10 || trimmed.length > 200) return;
+      if (/^[^a-zA-Z]*$/.test(trimmed)) return; // Skip lines with no letters
+      if (/(href|src|http|www\.|mailto:|style=|class=)/i.test(trimmed)) return; // Skip HTML/URL junk
+      if (/^(VISA|UPI|MasterCard|RuPay|Maestro|©|®|™)/i.test(trimmed)) return; // Skip payment/copyright text
+      
       const dates = this.extractDates(line);
       const times = this.extractTimes(line);
       const phrases = this.extractPhrases(line);
 
       phrases.forEach(phrase => {
-        const date = dates[0];
-        const time = times[0];
-        const urgency = this.calculateUrgency(date, line);
+        if (this.isValidReminder(phrase)) {
+          const date = dates[0];
+          const time = times[0];
+          const urgency = this.calculateUrgency(date, line);
 
-        reminders.push({
-          text: phrase,
-          date,
-          time,
-          urgency,
-          source
-        });
+          reminders.push({
+            text: phrase,
+            date,
+            time,
+            urgency,
+            source
+          });
+        }
       });
 
-      if (phrases.length === 0 && dates.length > 0) {
-        const cleanLine = line.trim().substring(0, 80);
-        if (cleanLine.length > 5) {
+      if (phrases.length === 0 && (dates.length > 0 || times.length > 0)) {
+        const cleanLine = trimmed.substring(0, 80);
+        if (this.isValidReminder(cleanLine)) {
           reminders.push({
             text: cleanLine,
             date: dates[0],
@@ -65,6 +82,25 @@ export class ReminderExtractor {
     });
 
     return this.deduplicateReminders(reminders);
+  }
+
+  private isValidReminder(text: string): boolean {
+    // Must have some meaningful words
+    const words = text.split(/\s+/).filter(w => w.length > 2);
+    if (words.length < 2) return false;
+    
+    // Skip if it's mostly symbols or numbers
+    const alphaCount = (text.match(/[a-zA-Z]/g) || []).length;
+    if (alphaCount < text.length * 0.4) return false;
+    
+    // Skip common junk patterns
+    const junkPatterns = [
+      /^(all applicable|personally identifiable|service-related|keep your searches)/i,
+      /^(your profile|all refunds|to such rights)/i,
+      /^(us via the email|you service-related)/i,
+    ];
+    
+    return !junkPatterns.some(pattern => pattern.test(text));
   }
 
   private extractDates(text: string): Date[] {
@@ -102,11 +138,18 @@ export class ReminderExtractor {
       const matches = text.matchAll(new RegExp(pattern.source, pattern.flags));
       for (const match of matches) {
         const phrase = match[1]?.trim();
-        if (phrase && phrase.length > 5 && phrase.length < 100) {
+        if (phrase && phrase.length > 10 && phrase.length < 150) {
           phrases.push(phrase);
         }
       }
     });
+
+    if (phrases.length === 0 && (text.includes('due') || text.includes('deadline') || text.includes('submit'))) {
+      const cleaned = text.replace(/^(re:|fwd:)/gi, '').trim();
+      if (cleaned.length > 10 && cleaned.length < 150) {
+        phrases.push(cleaned);
+      }
+    }
 
     return phrases;
   }

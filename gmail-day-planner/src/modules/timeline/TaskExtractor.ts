@@ -18,6 +18,11 @@ export class TaskExtractor {
     /deadline[:\s]+(.*?)(?:\.|$)/i,
     /due date[:\s]+(.*?)(?:\.|$)/i,
     /submit (?:.*?)(?:before|by) (.*?)(?:\.|$)/i,
+    /apply (?:before|by) (.*?)(?:\.|$)/i,
+    /registration closes (?:on )?(.*?)(?:\.|$)/i,
+    /last date[:\s]+(.*?)(?:\.|$)/i,
+    /(?:must|should) (?:be )?(?:completed|submitted|done) (?:before|by) (.*?)(?:\.|$)/i,
+    /(?:payment|bill) due[:\s]+(.*?)(?:\.|$)/i,
   ];
 
   extractTasks(emails: ProcessedEmail[]): ExtractedTask[] {
@@ -26,6 +31,7 @@ export class TaskExtractor {
     emails.forEach(email => {
       const text = `${email.subject} ${email.plainText}`;
       
+      // Extract from patterns
       this.taskPatterns.forEach(pattern => {
         const matches = text.matchAll(new RegExp(pattern.source, 'gi'));
         for (const match of matches) {
@@ -33,13 +39,23 @@ export class TaskExtractor {
           if (taskText && taskText.length > 5 && taskText.length < 100) {
             tasks.push({
               task: taskText,
-              deadline: this.extractDeadlineFromTask(taskText),
+              deadline: this.extractDeadlineFromTask(taskText) || (email.extractedData.dueDates[0] ? new Date(email.extractedData.dueDates[0]).toLocaleDateString() : undefined),
               emailId: email.id,
               subject: email.subject.substring(0, 30)
             });
           }
         }
       });
+
+      // Also add emails with due dates as tasks
+      if (email.extractedData.dueDates.length > 0 && (email.category === 'Bills' || email.category === 'Jobs' || email.category.includes('Meetings'))) {
+        tasks.push({
+          task: email.subject.substring(0, 60),
+          deadline: new Date(email.extractedData.dueDates[0]).toLocaleDateString(),
+          emailId: email.id,
+          subject: email.subject.substring(0, 30)
+        });
+      }
     });
 
     return this.deduplicateTasks(tasks);

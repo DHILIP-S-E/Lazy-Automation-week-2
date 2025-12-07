@@ -28,9 +28,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', background: '#fafafa' }}>
       <div style={{ width: '100%', maxWidth: '28rem' }}>
         <div className="card card-lg text-center">
-          <div style={{ width: '64px', height: '64px', margin: '0 auto 1.5rem', background: '#2563eb', borderRadius: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <Icons.Mail />
-          </div>
+          <img src="logo.jpeg" alt="AutoMail Logo" style={{ width: 250, height: 150, objectFit: 'cover', margin: '0 auto 1.5rem', borderRadius: '20px' }} />
 
           <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>AutoMail</h1>
           <p style={{ color: '#737373', marginBottom: '2rem' }}>Smart email day planner</p>

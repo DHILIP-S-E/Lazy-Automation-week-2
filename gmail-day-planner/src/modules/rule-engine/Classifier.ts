@@ -5,72 +5,42 @@ import { CATEGORY_KEYWORDS, REGEX_PATTERNS } from '../../constants';
 export class Classifier implements IClassifier {
   classify(email: ParsedEmail): EmailCategory {
     const subject = email.subject.toLowerCase();
-    const body = email.plainText.toLowerCase();
+    const body = email.plainText.toLowerCase().substring(0, 500);
     const from = email.from.toLowerCase();
+    const text = subject + ' ' + body;
 
-    if (this.isOTP(subject + ' ' + body)) return 'OTP';
+    if (this.isOTP(text, from)) return 'OTP';
 
     const scores: Record<string, number> = {
       Bills: 0, 'Student Meetings': 0, 'Internship Meetings': 0, 'Job Meetings': 0,
-      Jobs: 0, Meetings: 0, Promotions: 0,
+      Jobs: 0, Meetings: 0, Promotions: 0, Attachments: 0
     };
 
-    // Subject line has 3x weight
     Object.entries(CATEGORY_KEYWORDS).forEach(([category, keywords]) => {
       keywords.forEach(keyword => {
         const kw = keyword.toLowerCase();
-        if (subject.includes(kw)) scores[category] = (scores[category] || 0) + 3;
-        if (body.includes(kw)) scores[category] = (scores[category] || 0) + 1;
+        if (subject.includes(kw)) scores[category] = (scores[category] || 0) + 5;
+        if (body.includes(kw)) scores[category] = (scores[category] || 0) + 2;
+        if (from.includes(kw)) scores[category] = (scores[category] || 0) + 3;
       });
     });
 
-    // Sender domain analysis
-    if (from.includes('billing') || from.includes('invoice') || from.includes('payment')) scores.Bills += 5;
-    if (from.includes('noreply') || from.includes('marketing') || from.includes('promo')) scores.Promotions += 3;
-    if (from.includes('edu') || from.includes('university') || from.includes('college')) scores['Student Meetings'] += 4;
-    if (from.includes('recruit') || from.includes('careers') || from.includes('jobs')) scores.Jobs += 4;
+    if (from.includes('billing') || from.includes('invoice') || from.includes('payment')) scores.Bills += 8;
+    if (from.includes('noreply') && (body.includes('unsubscribe') || body.includes('promotional'))) scores.Promotions += 10;
+    if (from.includes('marketing') || from.includes('promo') || from.includes('newsletter')) scores.Promotions += 8;
+    if (from.includes('.edu') || from.includes('university') || from.includes('college')) scores['Student Meetings'] += 8;
+    if (from.includes('recruit') || from.includes('careers') || from.includes('jobs')) scores.Jobs += 8;
+    if (from.includes('deals') || from.includes('offers') || from.includes('shop')) scores.Promotions += 10;
 
-    // Context boosting with exclusions
-    if (subject.includes('shared') || subject.includes('invited you') || subject.includes('has shared') || from.includes('drive-shares-noreply')) {
-      scores.Attachments += 8;
-      scores.Promotions -= 10;
-    }
-    if (subject.includes('hiring') || subject.includes('job opening')) {
-      scores.Jobs += 5;
-      scores.Promotions -= 3;
-    }
-    if (subject.includes('intern')) {
-      scores['Internship Meetings'] += 6;
-      scores.Jobs -= 2;
-    }
-    if (subject.includes('interview')) {
-      scores['Job Meetings'] += 6;
-      scores.Jobs -= 1;
-    }
-    if (subject.includes('class') || subject.includes('course') || subject.includes('program')) {
-      scores['Student Meetings'] += 5;
-      scores.Promotions -= 3;
-    }
-    if (subject.includes('invoice') || subject.includes('bill') || subject.includes('payment due')) {
-      scores.Bills += 6;
-      scores.Promotions -= 4;
-    }
-    if (subject.includes('meet') || subject.includes('zoom') || subject.includes('join')) {
-      scores.Meetings += 4;
-    }
-    if (subject.includes('discount') || subject.includes('sale') || subject.includes('%') || subject.includes('free')) {
-      scores.Promotions += 4;
-    }
+    if (subject.includes('intern')) scores['Internship Meetings'] += 10;
+    if (subject.includes('interview')) scores['Job Meetings'] += 10;
+    if (subject.includes('invoice') || subject.includes('receipt') || subject.includes('payment')) scores.Bills += 8;
+    if (subject.includes('meet') || subject.includes('zoom') || subject.includes('teams')) scores.Meetings += 8;
+    if (subject.includes('discount') || subject.includes('sale') || subject.includes('%off') || subject.includes('deal')) scores.Promotions += 8;
+    if (body.includes('unsubscribe') || body.includes('opt-out') || body.includes('manage preferences')) scores.Promotions += 6;
+    if (subject.includes('shared') || subject.includes('invited you')) scores.Attachments += 10;
 
-    // Negative scoring for mismatches
-    if (subject.includes('hiring') && scores.Bills > 0) scores.Bills -= 5;
-    if (subject.includes('offer') && !subject.includes('job offer') && !subject.includes('shared')) scores.Promotions += 3;
-    if (email.attachments.length > 0 && (subject.includes('shared') || subject.includes('document'))) {
-      scores.Attachments += 5;
-      scores.Promotions -= 5;
-    }
-
-    let maxScore = -999;
+    let maxScore = 0;
     let bestCategory: EmailCategory = 'Other';
     
     Object.entries(scores).forEach(([category, score]) => {
@@ -80,27 +50,39 @@ export class Classifier implements IClassifier {
       }
     });
 
-    if (maxScore > 0) return bestCategory;
+    if (maxScore >= 5) return bestCategory;
     if (email.attachments && email.attachments.length > 0) return 'Attachments';
     return 'Other';
   }
 
 
 
-  private isOTP(text: string): boolean {
-    // Check for "your code is" pattern
-    if (text.includes('your code is')) {
+  private isOTP(text: string, from: string): boolean {
+    const excludeKeywords = ['summary', 'daily', 'weekly', 'report', 'digest', 'newsletter', 'update'];
+    if (excludeKeywords.some(kw => text.includes(kw))) {
+      return false;
+    }
+
+    const strongOtpKeywords = ['verification code', 'otp', 'one-time password', 'one time password', 
+                               'security code', 'authentication code', 'login code', 'access code',
+                               'verify your', 'confirm your account', 'verification pin'];
+    
+    if (strongOtpKeywords.some(kw => text.includes(kw))) {
       return true;
     }
 
-    // Check for other OTP keywords
-    if (CATEGORY_KEYWORDS.OTP.some((kw) => text.includes(kw.toLowerCase()))) {
+    if (text.includes('your code is') || text.includes('code:') || text.includes('otp:') || 
+        text.includes('pin:') || text.includes('verification:')) {
       return true;
     }
 
-    // Check for 6-digit code pattern
-    const otpMatch = text.match(REGEX_PATTERNS.otp);
-    return otpMatch !== null && otpMatch.length > 0;
+    if ((from.includes('noreply') || from.includes('no-reply')) && 
+        (text.includes('code') || text.includes('verify')) && 
+        REGEX_PATTERNS.otp.test(text)) {
+      return true;
+    }
+
+    return false;
   }
 }
 

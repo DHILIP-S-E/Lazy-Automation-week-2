@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import type { ProcessedEmail } from '../types/email';
 import { ReminderExtractor, type Reminder } from '../modules/reminders';
+import { Icons } from './Icons';
 
 interface ReminderPanelProps {
   emails: ProcessedEmail[];
@@ -15,11 +16,13 @@ export const ReminderPanel: React.FC<ReminderPanelProps> = ({ emails }) => {
   const emailReminders = useMemo(() => {
     const reminders: Reminder[] = [];
     emails.forEach(email => {
-      const text = `${email.subject}\n${email.plainText}`;
-      const extracted = extractor.extractFromText(text, email.subject.substring(0, 30));
-      reminders.push(...extracted);
+      if (email.extractedData.dueDates.length > 0 || email.extractedData.times.length > 0) {
+        const text = `${email.subject}\n${email.plainText.substring(0, 500)}`;
+        const extracted = extractor.extractFromText(text, email.subject.substring(0, 40));
+        reminders.push(...extracted);
+      }
     });
-    return reminders;
+    return reminders.slice(0, 50);
   }, [emails, extractor]);
 
   const textReminders = useMemo(() => {
@@ -77,8 +80,8 @@ export const ReminderPanel: React.FC<ReminderPanelProps> = ({ emails }) => {
     <div className="stack stack-6">
       <div className="card card-md">
         <div className="row between" style={{ marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
-            📅 Auto Reminders & Deadlines
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Icons.Bell /> Auto Reminders & Deadlines
           </h3>
           <button 
             onClick={() => setShowTextInput(!showTextInput)} 
@@ -118,19 +121,19 @@ export const ReminderPanel: React.FC<ReminderPanelProps> = ({ emails }) => {
       </div>
 
       {groupedReminders.today.length > 0 && (
-        <div className="card card-md" style={{ borderLeft: '4px solid #dc2626' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: '#dc2626' }}>
-            🔥 Today
+        <div className="card card-md animate-fade-in" style={{ borderLeft: '4px solid #dc2626', background: 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Icons.Flame /> Today
           </h4>
           <div className="stack stack-2">
             {groupedReminders.today.map((reminder, i) => (
-              <div key={i} style={{ padding: '0.75rem', background: '#fef2f2', borderRadius: '0.5rem' }}>
+              <div key={i} className="hover-lift" style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', border: '1px solid #fecaca', boxShadow: '0 1px 3px rgba(220, 38, 38, 0.1)' }}>
                 <div style={{ fontWeight: '500', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
                   {reminder.text}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#737373' }}>
-                  {reminder.time && <span style={{ marginRight: '0.5rem' }}>⏰ {reminder.time}</span>}
-                  <span>📧 {reminder.source}</span>
+                <div style={{ fontSize: '0.75rem', color: '#737373', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {reminder.time && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Icons.Clock style={{ width: '0.875rem', height: '0.875rem' }} /> {reminder.time}</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Icons.Mail style={{ width: '0.875rem', height: '0.875rem' }} /> {reminder.source}</span>
                 </div>
               </div>
             ))}
@@ -139,19 +142,19 @@ export const ReminderPanel: React.FC<ReminderPanelProps> = ({ emails }) => {
       )}
 
       {groupedReminders.tomorrow.length > 0 && (
-        <div className="card card-md" style={{ borderLeft: '4px solid #f59e0b' }}>
-          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: '#f59e0b' }}>
-            ⏰ Tomorrow
+        <div className="card card-md animate-fade-in" style={{ borderLeft: '4px solid #f59e0b', background: 'linear-gradient(135deg, #ffffff 0%, #fffbeb 100%)' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Icons.Clock /> Tomorrow
           </h4>
           <div className="stack stack-2">
             {groupedReminders.tomorrow.map((reminder, i) => (
-              <div key={i} style={{ padding: '0.75rem', background: '#fffbeb', borderRadius: '0.5rem' }}>
+              <div key={i} className="hover-lift" style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', border: '1px solid #fde68a', boxShadow: '0 1px 3px rgba(245, 158, 11, 0.1)' }}>
                 <div style={{ fontWeight: '500', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
                   {reminder.text}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#737373' }}>
-                  {reminder.time && <span style={{ marginRight: '0.5rem' }}>⏰ {reminder.time}</span>}
-                  <span>📧 {reminder.source}</span>
+                <div style={{ fontSize: '0.75rem', color: '#737373', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {reminder.time && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Icons.Clock style={{ width: '0.875rem', height: '0.875rem' }} /> {reminder.time}</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><Icons.Mail style={{ width: '0.875rem', height: '0.875rem' }} /> {reminder.source}</span>
                 </div>
               </div>
             ))}
@@ -160,19 +163,19 @@ export const ReminderPanel: React.FC<ReminderPanelProps> = ({ emails }) => {
       )}
 
       {groupedReminders.upcoming.length > 0 && (
-        <div className="card card-md">
-          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: '#3b82f6' }}>
-            📆 Upcoming
+        <div className="card card-md animate-fade-in" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)' }}>
+          <h4 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Icons.Calendar /> Upcoming
           </h4>
           <div className="stack stack-2">
             {groupedReminders.upcoming.slice(0, 10).map((reminder, i) => (
-              <div key={i} className="row between" style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
+              <div key={i} className="row between hover-lift" style={{ padding: '1rem', background: 'white', borderRadius: '0.5rem', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '500', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
                     {reminder.text}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#737373' }}>
-                    📧 {reminder.source}
+                  <div style={{ fontSize: '0.75rem', color: '#737373', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Icons.Mail style={{ width: '0.875rem', height: '0.875rem' }} /> {reminder.source}
                   </div>
                 </div>
                 <div style={{ fontSize: '0.875rem', fontWeight: '600', color: getUrgencyColor(reminder.urgency), whiteSpace: 'nowrap', marginLeft: '1rem' }}>
@@ -187,7 +190,7 @@ export const ReminderPanel: React.FC<ReminderPanelProps> = ({ emails }) => {
 
       {allReminders.length === 0 && (
         <div className="card card-md text-center" style={{ padding: '3rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}><Icons.Calendar style={{ width: '4rem', height: '4rem' }} /></div>
           <p style={{ color: '#737373' }}>No reminders or deadlines found</p>
           <p style={{ fontSize: '0.875rem', color: '#737373', marginTop: '0.5rem' }}>
             Try pasting text with dates or deadlines

@@ -42,23 +42,32 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({ emails }) => {
         </div>
       </div>
 
-      {otps.length > 0 && (
-        <div className="card card-md">
-          <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-            🔢 OTP Center
-          </h3>
+      <div className="card card-md">
+        <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
+          🔢 OTP Center
+        </h3>
+        {otps.length > 0 ? (
           <div className="stack stack-2">
             {otps.slice(0, 8).map((otp, i) => (
               <div key={i} className="row between" style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
-                <span style={{ fontWeight: '500' }}>{otp.service}</span>
+                <div>
+                  <div style={{ fontWeight: '500' }}>{otp.service}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#737373' }}>
+                    {otp.timestamp.toLocaleTimeString()}
+                  </div>
+                </div>
                 <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#2563eb', fontFamily: 'monospace' }}>
                   {otp.code}
                 </span>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p style={{ fontSize: '0.875rem', color: '#737373', textAlign: 'center', padding: '1rem' }}>
+            No recent OTP codes found (showing codes from last hour only)
+          </p>
+        )}
+      </div>
 
       {tomorrow.length > 0 && (
         <div className="card card-md">

@@ -10,18 +10,24 @@ export interface OTPEntry {
 export class OTPCenter {
   extractOTPs(emails: ProcessedEmail[]): OTPEntry[] {
     const otps: OTPEntry[] = [];
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
     emails.forEach(email => {
       if (email.category === 'OTP' && email.extractedData.otpCodes.length > 0) {
-        const service = this.extractServiceName(email.from, email.subject);
-        email.extractedData.otpCodes.forEach(code => {
-          otps.push({
-            service,
-            code,
-            timestamp: email.date,
-            emailId: email.id
+        if (email.date >= oneHourAgo) {
+          const service = this.extractServiceName(email.from, email.subject);
+          email.extractedData.otpCodes.forEach(code => {
+            if (code.length >= 4 && code.length <= 8 && /^\d+$/.test(code)) {
+              otps.push({
+                service,
+                code,
+                timestamp: email.date,
+                emailId: email.id
+              });
+            }
           });
-        });
+        }
       }
     });
 
