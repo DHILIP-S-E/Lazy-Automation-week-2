@@ -864,7 +864,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Initial Loading State (before first fetch) */}
         {!isLoading && emails.length === 0 && !error && !lastSync && (
           <div className="card card-lg text-center animate-fade-in" style={{ padding: '4rem' }}>
-            <img src="logo.jpeg" alt="Logo" style={{ width: 200, height: 200, objectFit: 'cover', margin: '0 auto 1.5rem', borderRadius: '20px' }} />
             <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>Getting ready...</h2>
             <p className="stat-label">Preparing to fetch your emails</p>
           </div>
