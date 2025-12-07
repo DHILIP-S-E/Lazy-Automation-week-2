@@ -28,7 +28,7 @@ export class OTPCenter {
     return otps.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   }
 
-  private extractServiceName(from: string, subject: string): string {
+  private extractServiceName(from: string, _subject: string): string {
     const fromMatch = from.match(/^([^<@]+)/);
     if (fromMatch) {
       const name = fromMatch[1].trim();

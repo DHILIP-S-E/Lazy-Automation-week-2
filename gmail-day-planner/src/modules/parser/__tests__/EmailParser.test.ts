@@ -27,6 +27,7 @@ describe('EmailParser', () => {
       const message: GmailMessage = {
         id: 'test-id',
         threadId: 'thread-id',
+        labelIds: [],
         payload: {
           headers: [
             { name: 'Subject', value: 'Test Subject' },
@@ -50,6 +51,7 @@ describe('EmailParser', () => {
       const message: GmailMessage = {
         id: 'test-id',
         threadId: 'thread-id',
+        labelIds: [],
         payload: {
           headers: [{ name: 'Content-Type', value: 'text/plain' }],
           body: { size: 0, data: btoa('Hello World') },
@@ -66,6 +68,7 @@ describe('EmailParser', () => {
       const message: GmailMessage = {
         id: 'test-id',
         threadId: 'thread-id',
+        labelIds: [],
         payload: {
           headers: [],
           body: { size: 0 },
@@ -86,6 +89,7 @@ describe('EmailParser', () => {
       const message: GmailMessage = {
         id: 'test-id',
         threadId: 'thread-id',
+        labelIds: [],
         payload: { headers: [], body: { size: 0 } },
         snippet: 'Snippet text',
         internalDate: '1704096000000',
@@ -99,6 +103,7 @@ describe('EmailParser', () => {
       const message: GmailMessage = {
         id: 'test-id',
         threadId: 'thread-id',
+        labelIds: [],
         payload: {
           headers: [],
           body: { size: 0 },

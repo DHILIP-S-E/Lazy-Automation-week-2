@@ -85,13 +85,7 @@ export class Classifier implements IClassifier {
     return 'Other';
   }
 
-  private getCombinedText(email: ParsedEmail): string {
-    return `${email.subject} ${email.plainText} ${email.snippet}`;
-  }
 
-  private matchesKeywords(text: string, keywords: readonly string[]): boolean {
-    return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
-  }
 
   private isOTP(text: string): boolean {
     // Check for "your code is" pattern
