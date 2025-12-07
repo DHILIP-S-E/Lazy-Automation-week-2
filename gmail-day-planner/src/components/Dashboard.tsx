@@ -435,7 +435,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {!isLoading && emails.length > 0 && (
           <>
-            <div className={`card card-md priority-card priority-${priorityAnalysis.level} animate-fade-in`} style={{ marginBottom: '2rem' }}>
+            <div 
+              className={`card card-md priority-card priority-${priorityAnalysis.level} animate-fade-in hover-lift`} 
+              style={{ marginBottom: '2rem', cursor: 'pointer' }}
+              onClick={() => { setFilter('stress'); scrollToEmails(); }}
+            >
               <div className="row between mb-4">
                 <div>
                   <p className="stat-label mb-4">Today's Priority Score</p>
